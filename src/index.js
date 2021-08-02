@@ -4,8 +4,8 @@ import HelloWorld from './scenes/HelloWorld.js'
 var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
-    width: 800,
-    height: 800,
+    width: 300,
+    height: 300,
     physics: {
         default: 'arcade',
         arcade: {
@@ -17,6 +17,9 @@ var config = {
         preload: preload,
         create: create,
         update: update
+    },
+    scale: {
+        zoom: 2.5
     }
 }
 
@@ -24,7 +27,6 @@ var config = {
     var meg;
     var trapper;
     var cursors;
-    var background;
     var meg_last_direction;
     var trapper_last_direction;
 
@@ -40,8 +42,8 @@ var config = {
         const map = this.make.tilemap({key: 'dungeon'});
         const tileset = map.addTilesetImage('Dungeon', 'tiles');
 
-        const groundLayer = map.createLayer('Ground', tileset, -610, -490);
-        const wallsLayer = map.createLayer('Walls', tileset, -610, -490);
+        const groundLayer = map.createLayer('Ground', tileset, -630, -475);
+        const wallsLayer = map.createLayer('Walls', tileset, -630, -475);
 
         wallsLayer.setCollisionByProperty({collides: true});
 
@@ -52,21 +54,10 @@ var config = {
         //     faceColor: new Phaser.Display.Color(40, 39, 37, 255)
         // });
 
-        
-
-        // background = this.add.tileSprite(0, 0, game.width, game.height, 'bg');
-        // background.displayHeight = this.sys.game.config.height;
-        // background.scaleX = background.scaleY;
-        // background.x = game.config.width/2;
-        // background.y = game.config.height/2;
-        // background.x = background.displayWidth*0.5;
-
-        meg = this.physics.add.sprite(0, 400, 'meg_sprites', 'meg_sprite_21.png');
-        meg.setScale(1, 1);
-        meg.setBounce(0.2);
-        trapper = this.physics.add.sprite(400, 400, 'trapper_sprites', 'trapper_sprite_78.png');
-        trapper.setScale(1.2, 1.2);
-        trapper.setBounce(0.2);
+        meg = this.physics.add.sprite(50, 50, 'meg_sprites', 'meg_sprite_21.png');
+        meg.setScale(0.8, 0.8);
+        trapper = this.physics.add.sprite(100, 100, 'trapper_sprites', 'trapper_sprite_78.png');
+        trapper.setScale(1, 1);
 
         this.physics.add.collider(meg, wallsLayer);
 
@@ -243,27 +234,27 @@ var config = {
         }
 
         if (Phaser.Math.Distance.BetweenPoints(meg, trapper) < 80000) {
-            if(meg.x - trapper.x >= Math.abs(meg.y - trapper.y) + 40) {
+            if(meg.x - trapper.x >= Math.abs(meg.y - trapper.y) + 20) {
                 trapper.setVelocityX(100);
                 trapper.setVelocityY(0);
                 trapper.flipX = true;
                 trapper.anims.play('trapper-walk-left', true);
                 trapper_last_direction = "right";
             }
-            else if(meg.x - trapper.x <= -Math.abs(meg.y - trapper.y) - 40) {
+            else if(meg.x - trapper.x <= -Math.abs(meg.y - trapper.y) - 20) {
                 trapper.setVelocityX(-100);
                 trapper.setVelocityY(0);
                 trapper.flipX = false;
                 trapper.anims.play('trapper-walk-left', true);
                 trapper_last_direction = "left";
             }
-            else if(meg.y - trapper.y <= -Math.abs(meg.x - trapper.x) - 40) {
+            else if(meg.y - trapper.y <= -Math.abs(meg.x - trapper.x) - 20) {
                 trapper.setVelocityX(0);
                 trapper.setVelocityY(-100);
                 trapper.anims.play('trapper-walk-up', true);
                 trapper_last_direction = "up";
             }
-            else if(meg.y - trapper.y >= Math.abs(meg.x - trapper.x) + 40) {
+            else if(meg.y - trapper.y >= Math.abs(meg.x - trapper.x) + 20) {
                 trapper.setVelocityX(0);
                 trapper.setVelocityY(100);
                 trapper.anims.play('trapper-walk-down', true);
