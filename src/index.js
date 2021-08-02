@@ -4,7 +4,7 @@ var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
     width: 800,
-    height: 600,
+    height: 800,
     physics: {
         default: 'arcade',
         arcade: {
@@ -30,11 +30,11 @@ var trapper_last_direction;
 function preload() {
     this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
     this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
-    this.load.image('rocks', 'assets/free_rocks.png');
+    this.load.image('bg', 'assets/tile_bg_placeholder.png');
 }
 
 function create() {
-    background = this.add.tileSprite(0, 0, game.width, game.height, 'rocks');
+    background = this.add.tileSprite(0, 0, game.width, game.height, 'bg');
     background.displayHeight = this.sys.game.config.height;
     background.scaleX = background.scaleY;
     background.x = game.config.width/2;
@@ -221,27 +221,27 @@ function update(time, delta) {
     }
 
     if (Phaser.Math.Distance.BetweenPoints(meg, trapper) < 80000) {
-        if(meg.x - trapper.x >= Math.abs(meg.y - trapper.y) + 20) {
+        if(meg.x - trapper.x >= Math.abs(meg.y - trapper.y) + 40) {
             trapper.setVelocityX(100);
             trapper.setVelocityY(0);
             trapper.flipX = true;
             trapper.anims.play('trapper-walk-left', true);
             trapper_last_direction = "right";
         }
-        else if(meg.x - trapper.x <= -Math.abs(meg.y - trapper.y) - 20) {
+        else if(meg.x - trapper.x <= -Math.abs(meg.y - trapper.y) - 40) {
             trapper.setVelocityX(-100);
             trapper.setVelocityY(0);
             trapper.flipX = false;
             trapper.anims.play('trapper-walk-left', true);
             trapper_last_direction = "left";
         }
-        else if(meg.y - trapper.y <= -Math.abs(meg.x - trapper.x) - 20) {
+        else if(meg.y - trapper.y <= -Math.abs(meg.x - trapper.x) - 40) {
             trapper.setVelocityX(0);
             trapper.setVelocityY(-100);
             trapper.anims.play('trapper-walk-up', true);
             trapper_last_direction = "up";
         }
-        else if(meg.y - trapper.y >= Math.abs(meg.x - trapper.x) + 20) {
+        else if(meg.y - trapper.y >= Math.abs(meg.x - trapper.x) + 40) {
             trapper.setVelocityX(0);
             trapper.setVelocityY(100);
             trapper.anims.play('trapper-walk-down', true);
