@@ -4,8 +4,8 @@ import HelloWorld from './scenes/HelloWorld.js'
 var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
-    width: 300,
-    height: 300,
+    width: 400,
+    height: 400,
     physics: {
         default: 'arcade',
         arcade: {
@@ -33,9 +33,8 @@ var config = {
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
         this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
-        this.load.image('bg', 'assets/tiles/tile_bg_placeholder.png');
         this.load.image('tiles', 'assets/tiles/Dungeon_Level/Dungeon_Level_SS.png');
-        this.load.tilemapTiledJSON('dungeon', 'assets/tiles/Dungeon_TM.json');
+        this.load.tilemapTiledJSON('dungeon', 'assets/tiles/Dungeon_TM2.json');
     }
 
     function create() {
@@ -54,11 +53,14 @@ var config = {
         //     faceColor: new Phaser.Display.Color(40, 39, 37, 255)
         // });
 
-        meg = this.physics.add.sprite(50, 50, 'meg_sprites', 'meg_sprite_21.png');
+        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png');
         meg.setScale(0.8, 0.8);
-        trapper = this.physics.add.sprite(100, 100, 'trapper_sprites', 'trapper_sprite_78.png');
+        trapper = this.physics.add.sprite(50, 50, 'trapper_sprites', 'trapper_sprite_78.png');
         trapper.setScale(1, 1);
 
+        this.cameras.main.setSize(250, 250);
+        this.cameras.main.setPosition(60, 60);
+        this.cameras.main.startFollow(meg);
         this.physics.add.collider(meg, wallsLayer);
 
         cursors = this.input.keyboard.createCursorKeys();
@@ -183,7 +185,8 @@ var config = {
             meg.x = 850;
         }
         if(meg.y > 850) {
-            meg.y = -50;
+            // meg.y = -50;
+            this.camera.scrollY(50);
         }
         else if(meg.y < -50) {
             meg.y = 850;
