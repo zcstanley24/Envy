@@ -1,5 +1,5 @@
 import 'phaser';
-import HelloWorld from './scenes/HelloWorld.js'
+import showCollisionAreas from './helper_functions/showCollisionAreas';
 
 var config = {
     type: Phaser.AUTO,
@@ -34,18 +34,12 @@ var config = {
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
         this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
-        // this.load.image('tiles', 'assets/tiles/Dungeon_Level/Dungeon_Level_SS.png');
         this.load.image('tiles', 'assets/tiles/westworld.png');
-        this.load.tilemapTiledJSON('dungeon', 'assets/tiles/Dungeon_TM2.json');
         this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json')
     }
 
     function create() {
-        // const map = this.make.tilemap({key: 'dungeon'});
-        // const tileset = map.addTilesetImage('Dungeon', 'tiles');
-
         // create the map
-        // var map = this.make.tilemap({ key: 'map' });
         var map = this.make.tilemap({ key: 'tilemap' })
 
         // first parameter is the name of the tilemap in tiled
@@ -65,19 +59,6 @@ var config = {
 
         // make all tiles in obstacles collidable
         obstacles.setCollisionByExclusion([-1]);
-        // obstacles.setCollisionByProperty({ collides: true });
-
-        // const groundLayer = map.createLayer('Ground', tileset, -630, -475);
-        // const wallsLayer = map.createLayer('Walls', tileset, -630, -475);
-
-        // wallsLayer.setCollisionByProperty({collides: true});
-
-        // const debugGraphics = this.add.graphics().setAlpha(0.7);
-        // wallsLayer.renderDebug(debugGraphics, {
-        //     tileColor: null,
-        //     collidingTileColor: new Phaser.Display.Color(243, 234, 48, 255),
-        //     faceColor: new Phaser.Display.Color(40, 39, 37, 255)
-        // });
 
         // don't go out of the map
         this.physics.world.bounds.width = map.widthInPixels;
@@ -88,6 +69,10 @@ var config = {
         // don't walk on trees
         this.physics.add.collider(meg, obstacles);
         this.physics.add.collider(trapper, obstacles);
+        
+        //use this to test collision areas of a layer
+        // const debugGraphics = this.add.graphics().setAlpha(0.7);
+        // showCollisionAreas(obstacles, debugGraphics);
 
         // limit camera to map
         // this.cameras.main.setBounds(0, 0, 120, 80);
@@ -95,10 +80,6 @@ var config = {
         this.cameras.main.setSize(360, 240);
         this.cameras.main.setPosition(60, 60);
         // this.cameras.main.roundPixels = true; // avoid tile bleed
-
-        // this.cameras.main.setPosition(120, 80);
-        // this.cameras.main.startFollow(meg);
-        // this.physics.add.collider(meg, obstacles);
 
         cursors = this.input.keyboard.createCursorKeys();
         wasd = {
