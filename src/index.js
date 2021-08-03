@@ -30,11 +30,13 @@ var config = {
     var wasd;
     var meg_last_direction;
     var trapper_last_direction;
+    var gen;
 
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
         this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
         this.load.image('tiles', 'assets/tiles/westworld.png');
+        this.load.image('gen', 'assets/objects/gen.png');
         this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json')
     }
 
@@ -57,6 +59,9 @@ var config = {
 
         map.createLayer('Foreground', tiles, 0, 0);
 
+        gen = this.physics.add.sprite(510, 360, 'gen').setSize(80, 80).setOffset(10, 250).setImmovable();
+        gen.setScale(0.3, 0.3);
+
         // make all tiles in obstacles collidable
         obstacles.setCollisionByExclusion([-1]);
 
@@ -69,7 +74,10 @@ var config = {
         // don't walk on trees
         this.physics.add.collider(meg, obstacles);
         this.physics.add.collider(trapper, obstacles);
-        
+
+        this.physics.add.collider(meg, gen);
+        this.physics.add.collider(trapper, gen);
+
         //use this to test collision areas of a layer
         // const debugGraphics = this.add.graphics().setAlpha(0.7);
         // showCollisionAreas(obstacles, debugGraphics);
