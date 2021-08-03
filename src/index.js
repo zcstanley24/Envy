@@ -4,13 +4,13 @@ import HelloWorld from './scenes/HelloWorld.js'
 var config = {
     type: Phaser.AUTO,
     parent: 'phaser-example',
-    width: 400,
-    height: 400,
+    width: 640,
+    height: 480,
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: {y: 0},
-            debug: false
+            gravity: { y: 0 },
+            debug: true
         }
     },
     scene: {
@@ -27,24 +27,50 @@ var config = {
     var meg;
     var trapper;
     var cursors;
+    var wasd;
     var meg_last_direction;
     var trapper_last_direction;
 
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
         this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
-        this.load.image('tiles', 'assets/tiles/Dungeon_Level/Dungeon_Level_SS.png');
+        // this.load.image('tiles', 'assets/tiles/Dungeon_Level/Dungeon_Level_SS.png');
+        this.load.image('tiles', 'assets/tiles/westworld.png');
         this.load.tilemapTiledJSON('dungeon', 'assets/tiles/Dungeon_TM2.json');
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json')
     }
 
     function create() {
-        const map = this.make.tilemap({key: 'dungeon'});
-        const tileset = map.addTilesetImage('Dungeon', 'tiles');
+        // const map = this.make.tilemap({key: 'dungeon'});
+        // const tileset = map.addTilesetImage('Dungeon', 'tiles');
 
-        const groundLayer = map.createLayer('Ground', tileset, -630, -475);
-        const wallsLayer = map.createLayer('Walls', tileset, -630, -475);
+        // create the map
+        // var map = this.make.tilemap({ key: 'map' });
+        var map = this.make.tilemap({ key: 'tilemap' })
 
-        wallsLayer.setCollisionByProperty({collides: true});
+        // first parameter is the name of the tilemap in tiled
+        var tiles = map.addTilesetImage('tileset', 'tiles');
+
+        // creating the layers
+        map.createLayer('Ground', tiles, 0, 0);
+        map.createLayer('Buildings', tiles, 0, 0);
+        var obstacles = map.createLayer('Barriers', tiles, 0, 0);
+
+        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(25, 25).setOffset(20, 40);
+        meg.setScale(0.8, 0.8);
+        trapper = this.physics.add.sprite(50, 50, 'trapper_sprites', 'trapper_sprite_78.png').setSize(30, 30).setOffset(18, 36);
+        trapper.setScale(1, 1);
+
+        map.createLayer('Foreground', tiles, 0, 0);
+
+        // make all tiles in obstacles collidable
+        obstacles.setCollisionByExclusion([-1]);
+        // obstacles.setCollisionByProperty({ collides: true });
+
+        // const groundLayer = map.createLayer('Ground', tileset, -630, -475);
+        // const wallsLayer = map.createLayer('Walls', tileset, -630, -475);
+
+        // wallsLayer.setCollisionByProperty({collides: true});
 
         // const debugGraphics = this.add.graphics().setAlpha(0.7);
         // wallsLayer.renderDebug(debugGraphics, {
@@ -53,17 +79,34 @@ var config = {
         //     faceColor: new Phaser.Display.Color(40, 39, 37, 255)
         // });
 
-        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png');
-        meg.setScale(0.8, 0.8);
-        trapper = this.physics.add.sprite(50, 50, 'trapper_sprites', 'trapper_sprite_78.png');
-        trapper.setScale(1, 1);
+        // don't go out of the map
+        this.physics.world.bounds.width = map.widthInPixels;
+        this.physics.world.bounds.height = map.heightInPixels;
+        meg.setCollideWorldBounds(true);
+        trapper.setCollideWorldBounds(true);
 
-        this.cameras.main.setSize(250, 250);
-        this.cameras.main.setPosition(60, 60);
+        // don't walk on trees
+        this.physics.add.collider(meg, obstacles);
+        this.physics.add.collider(trapper, obstacles);
+
+        // limit camera to map
+        // this.cameras.main.setBounds(0, 0, 120, 80);
         this.cameras.main.startFollow(meg);
-        this.physics.add.collider(meg, wallsLayer);
+        this.cameras.main.setSize(360, 240);
+        this.cameras.main.setPosition(60, 60);
+        // this.cameras.main.roundPixels = true; // avoid tile bleed
+
+        // this.cameras.main.setPosition(120, 80);
+        // this.cameras.main.startFollow(meg);
+        // this.physics.add.collider(meg, obstacles);
 
         cursors = this.input.keyboard.createCursorKeys();
+        wasd = {
+            up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+            down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+            left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+            right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+        }
 
         var megWalkUpFrameNames = this.anims.generateFrameNames('meg_sprites', {
             start: 3, end: 10, prefix: 'meg_sprite_', suffix: '.png'
@@ -100,7 +143,7 @@ var config = {
         });
         var trapperStandLeftFrameNames = this.anims.generateFrameNames('trapper_sprites', {
             start: 69, end: 69, prefix: 'trapper_sprite_', suffix: '.png'
-        }); 
+        });
 
         this.anims.create({
             key: 'meg-walk-up',
@@ -178,49 +221,51 @@ var config = {
     }
 
     function update(time, delta) {
-        if(meg.x > 850) {
-            meg.x = -50;
+        meg.setVelocity(0);
+
+        if(cursors.right.isDown || wasd.right.isDown) {
+            meg.setVelocityX(200);
+            meg.body.velocity.normalize().scale(200);
         }
-        else if(meg.x < -50) {
-            meg.x = 850;
-        }
-        if(meg.y > 850) {
-            // meg.y = -50;
-            this.camera.scrollY(50);
-        }
-        else if(meg.y < -50) {
-            meg.y = 850;
+        else if(cursors.left.isDown || wasd.left.isDown) {
+            meg.setVelocityX(-200);
+            meg.body.velocity.normalize().scale(200);
         }
 
-        if(cursors.right.isDown) {
-            meg.setVelocityX(200);
-            meg.setVelocityY(0);
-            meg.flipX = true;
-            meg.anims.play('meg-walk-left', true);
-            meg_last_direction = "right";
+        if(cursors.up.isDown || wasd.up.isDown) {
+            meg.setVelocityY(-200);
+            meg.body.velocity.normalize().scale(200);
         }
-        else if(cursors.left.isDown) {
-            meg.setVelocityX(-200);
-            meg.setVelocityY(0);
-            meg.flipX = false;
+        else if(cursors.down.isDown || wasd.down.isDown) {
+            meg.setVelocityY(200);
+            meg.body.velocity.normalize().scale(200);
+        }
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (cursors.left.isDown || wasd.left.isDown)
+        {
             meg.anims.play('meg-walk-left', true);
+            meg.flipX = false;
             meg_last_direction = "left";
         }
-        else if(cursors.up.isDown) {
-            meg.setVelocityX(0);
-            meg.setVelocityY(-200);
+        else if (cursors.right.isDown || wasd.right.isDown)
+        {
+            meg.anims.play('meg-walk-left', true);
+            meg.flipX = true;
+            meg_last_direction = "right";
+        }
+        else if (cursors.up.isDown || wasd.up.isDown)
+        {
             meg.anims.play('meg-walk-up', true);
             meg_last_direction = "up";
         }
-        else if(cursors.down.isDown) {
-            meg.setVelocityX(0);
-            meg.setVelocityY(200);
+        else if (cursors.down.isDown || wasd.down.isDown)
+        {
             meg.anims.play('meg-walk-down', true);
             meg_last_direction = "down";
         }
-        else {
-            meg.setVelocityX(0);
-            meg.setVelocityY(0);
+        else
+        {
             if(meg_last_direction === "right") {
                 meg.flipX = true;
                 meg.anims.play('meg-stand-left', true);
