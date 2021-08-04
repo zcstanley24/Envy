@@ -1,4 +1,5 @@
 import 'phaser';
+var easystarjs = require('easystarjs');
 import showCollisionAreas from './helper_functions/showCollisionAreas';
 
 var config = {
@@ -22,7 +23,7 @@ var config = {
         zoom: 2.5
     }
 }
-
+    var easystar = new easystarjs.js();
     var game = new Phaser.Game(config);
     var meg;
     var trapper;
@@ -31,13 +32,15 @@ var config = {
     var meg_last_direction;
     var trapper_last_direction;
     var gen;
+    var target_object;
+    var update_timer = 0;
 
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
         this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
         this.load.image('tiles', 'assets/tiles/westworld.png');
         this.load.image('gen', 'assets/objects/gen.png');
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json')
+        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json');
     }
 
     function create() {
@@ -51,17 +54,56 @@ var config = {
         map.createLayer('Ground', tiles, 0, 0);
         // map.createLayer('Buildings', tiles, 0, 0);
         var obstacles = map.createLayer('Buildings and Ground', tiles, 0, 0);
-        // var obstacles = map.createLayer('Barriers', tiles, 0, 0);
-
-        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(25, 25).setOffset(20, 40);
-        meg.setScale(0.8, 0.8);
-        trapper = this.physics.add.sprite(50, 50, 'trapper_sprites', 'trapper_sprite_78.png').setSize(30, 30).setOffset(18, 36);
-        trapper.setScale(1, 1);
-
         map.createLayer('Foreground', tiles, 0, 0);
 
+        // create ground array for pathfinding
+        var ground_grid = [];
+        for(let y = 0; y < map.height; y++) {
+            var col = [];
+            for(var x = 0; x < map.width; x++) {
+                var tile = map.getTileAt(x, y, true, 'Buildings and Ground');
+                col.push(tile.index);
+            }
+            ground_grid.push(col);
+        }
+        easystar.setGrid(ground_grid);
+
+        var tileset = map.tilesets[0];
+        var properties = tileset.tileProperties;
+        var acceptableTiles = [];
+
+        for(var i = tileset.firstgid-1; i < tileset.total; i++){ // firstgid and total are fields from Tiled that indicate the range of IDs that the tiles can take in that tileset
+            if(!properties.hasOwnProperty(i)) {
+                acceptableTiles.push(i+1);
+                continue;
+            }
+            if(!properties[i].collides) {
+                acceptableTiles.push(i+1);
+            }
+        }
+        easystar.setAcceptableTiles(acceptableTiles);
+        //avoid generator
+        easystar.avoidAdditionalPoint(30, 24);
+        easystar.avoidAdditionalPoint(31, 23);
+        easystar.avoidAdditionalPoint(31, 24);
+        easystar.avoidAdditionalPoint(31, 25);
+        easystar.avoidAdditionalPoint(32, 24);
+        //stuck on objects
+        easystar.avoidAdditionalPoint(23, 26);
+        easystar.avoidAdditionalPoint(26, 26);
+        // easystar.avoidAdditionalPoint(18, 24);
+        // easystar.avoidAdditionalPoint(45, 23);
+        // easystar.avoidAdditionalPoint(31, 41);
+
+        //creating the sprites
+        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(16, 16); //changed from 25, 25
+        meg.setScale(0.8, 0.8);
+        trapper = this.physics.add.sprite(64, 64, 'trapper_sprites', 'trapper_sprite_78.png').setSize(16, 16); //changed from 30, 30 to avoid getting stuck
+        trapper.setScale(0.8, 0.8);
         gen = this.physics.add.sprite(510, 360, 'gen').setSize(80, 80).setOffset(10, 250).setImmovable();
         gen.setScale(0.3, 0.3);
+        target_object = this.physics.add.sprite(64, 64, 'meg_sprites', 'meg_sprite_21.png').setSize(1, 1);
+        target_object.visible = false;
 
         // make all tiles in obstacles collidable
         // obstacles.setCollisionByExclusion([-1]);
@@ -134,6 +176,15 @@ var config = {
         });
         var trapperStandLeftFrameNames = this.anims.generateFrameNames('trapper_sprites', {
             start: 69, end: 69, prefix: 'trapper_sprite_', suffix: '.png'
+        });
+        var trapperAttackUpFrameNames = this.anims.generateFrameNames('trapper_sprites', {
+            start: 96, end: 101, prefix: 'trapper_sprite_', suffix: '.png'
+        });
+        var trapperAttackDownFrameNames = this.anims.generateFrameNames('trapper_sprites', {
+            start: 108, end: 113, prefix: 'trapper_sprite_', suffix: '.png'
+        });
+        var trapperAttackLeftFrameNames = this.anims.generateFrameNames('trapper_sprites', {
+            start: 102, end: 107, prefix: 'trapper_sprite_', suffix: '.png'
         });
 
         this.anims.create({
@@ -209,9 +260,86 @@ var config = {
             frameRate: 10,
             repeat: -1
         });
+        this.anims.create({
+            key: 'trapper-attack-up',
+            frames: trapperAttackUpFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'trapper-attack-down',
+            frames: trapperAttackDownFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'trapper-attack-left',
+            frames: trapperAttackLeftFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
     }
 
     function update(time, delta) {
+        //update_timer runs easystar path algorithm every x update triggers (roughly 60 update triggers/sec)
+        //need to tweak update_timer and moveToObject speed parameters for better ai 
+        easystar.enableDiagonals();
+        // easystar.enableCornerCutting();
+        easystar.setIterationsPerCalculation(6000);
+        if(update_timer === 50) {
+            update_timer = 0;
+            easystar.findPath(Math.floor(trapper.x/16), Math.floor(trapper.y/16), Math.floor(meg.x/16), Math.floor(meg.y/16), (path) => {
+                if(path === null) {
+                    console.log("Path was not found");
+                }
+                else {
+                    console.log(path);
+                    for(let i = 1; i < 3; i++) {
+                        target_object.x = path[i].x*16;
+                        target_object.y = path[i].y*16;
+                        this.physics.moveToObject(trapper, target_object, 150);
+                    }
+                    if(path[1].x > trapper.x/16 + 0.5) {
+                        trapper.flipX = true;
+                        trapper.anims.play('trapper-walk-left', true);
+                        trapper_last_direction = "right";
+                    }
+                    else if(path[1].x < trapper.x/16 - 0.5) {
+                        trapper.flipX = false;
+                        trapper.anims.play('trapper-walk-left', true);
+                        trapper_last_direction = "left";
+                    }
+                    else if(path[1].y < trapper.y/16) {
+                        trapper.anims.play('trapper-walk-up', true);
+                        trapper_last_direction = "up";
+                    }
+                    else if(path[1].y > trapper.y/16) {
+                        trapper.anims.play('trapper-walk-down', true);
+                        trapper_last_direction = "down";
+                    }
+                }
+            });
+            easystar.calculate();
+        }
+        if(Math.abs(meg.x - trapper.x) < 16 && Math.abs(meg.y - trapper.y) < 16) {
+            trapper.setVelocityX(0);
+            trapper.setVelocityY(0);
+            if(trapper_last_direction === "up") {
+                trapper.anims.play('trapper-attack-up', true);
+            }
+            else if(trapper_last_direction === "down") {
+                trapper.anims.play('trapper-attack-down', true);
+            }
+            else if(trapper_last_direction === "right") {
+                trapper.flipX = true;
+                trapper.anims.play('trapper-attack-left', true);
+            }
+            else {
+                trapper.flipX = false;
+                trapper.anims.play('trapper-attack-left', true);
+            }
+        }
+        update_timer++;
         meg.setVelocity(0);
 
         if(cursors.right.isDown || wasd.right.isDown) {
@@ -269,71 +397,6 @@ var config = {
             }
             else if(meg_last_direction === "down") {
                 meg.anims.play('meg-stand-down', true);
-            }
-        }
-
-        if (Phaser.Math.Distance.BetweenPoints(meg, trapper) < 80000) {
-            if(meg.x - trapper.x >= Math.abs(meg.y - trapper.y) + 20) {
-                trapper.setVelocityX(100);
-                trapper.setVelocityY(0);
-                trapper.flipX = true;
-                trapper.anims.play('trapper-walk-left', true);
-                trapper_last_direction = "right";
-            }
-            else if(meg.x - trapper.x <= -Math.abs(meg.y - trapper.y) - 20) {
-                trapper.setVelocityX(-100);
-                trapper.setVelocityY(0);
-                trapper.flipX = false;
-                trapper.anims.play('trapper-walk-left', true);
-                trapper_last_direction = "left";
-            }
-            else if(meg.y - trapper.y <= -Math.abs(meg.x - trapper.x) - 20) {
-                trapper.setVelocityX(0);
-                trapper.setVelocityY(-100);
-                trapper.anims.play('trapper-walk-up', true);
-                trapper_last_direction = "up";
-            }
-            else if(meg.y - trapper.y >= Math.abs(meg.x - trapper.x) + 20) {
-                trapper.setVelocityX(0);
-                trapper.setVelocityY(100);
-                trapper.anims.play('trapper-walk-down', true);
-                trapper_last_direction = "down";
-            }
-            else if(Math.abs(meg.y - trapper.y) <= 5) {
-                trapper.setVelocityX(0);
-                trapper.setVelocityY(0);
-                if(trapper_last_direction === "up") {
-                    trapper.anims.play('trapper-stand-up', true);
-                }
-                else if(trapper_last_direction === "down") {
-                    trapper.anims.play('trapper-stand-down', true);
-                }
-                else if(trapper_last_direction === "right") {
-                    trapper.flipX = true;
-                    trapper.anims.play('trapper-stand-left', true);
-                }
-                else if(trapper_last_direction === "left") {
-                    trapper.flipX = false;
-                    trapper.anims.play('trapper-stand-left', true);
-                }
-            }
-            else if(Math.abs(meg.x - trapper.x) <= 5) {
-                trapper.setVelocityX(0);
-                trapper.setVelocityY(0);
-                if(trapper_last_direction === "right") {
-                    trapper.flipX = true;
-                    trapper.anims.play('trapper-stand-left', true);
-                }
-                else if(trapper_last_direction === "left") {
-                    trapper.flipX = false;
-                    trapper.anims.play('trapper-stand-left', true);
-                }
-                else if(trapper_last_direction === "up") {
-                    trapper.anims.play('trapper-stand-up', true);
-                }
-                else if(trapper_last_direction === "down") {
-                    trapper.anims.play('trapper-stand-down', true);
-                }
             }
         }
     }
