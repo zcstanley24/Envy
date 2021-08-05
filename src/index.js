@@ -49,8 +49,9 @@ var config = {
 
         // creating the layers
         map.createLayer('Ground', tiles, 0, 0);
-        map.createLayer('Buildings', tiles, 0, 0);
-        var obstacles = map.createLayer('Barriers', tiles, 0, 0);
+        // map.createLayer('Buildings', tiles, 0, 0);
+        var obstacles = map.createLayer('Buildings and Ground', tiles, 0, 0);
+        // var obstacles = map.createLayer('Barriers', tiles, 0, 0);
 
         meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(25, 25).setOffset(20, 40);
         meg.setScale(0.8, 0.8);
@@ -63,7 +64,8 @@ var config = {
         gen.setScale(0.3, 0.3);
 
         // make all tiles in obstacles collidable
-        obstacles.setCollisionByExclusion([-1]);
+        // obstacles.setCollisionByExclusion([-1]);
+        obstacles.setCollisionByProperty({collides: true});
 
         // don't go out of the map
         this.physics.world.bounds.width = map.widthInPixels;
@@ -79,8 +81,8 @@ var config = {
         this.physics.add.collider(trapper, gen);
 
         //use this to test collision areas of a layer
-        // const debugGraphics = this.add.graphics().setAlpha(0.7);
-        // showCollisionAreas(obstacles, debugGraphics);
+        const debugGraphics = this.add.graphics().setAlpha(0.7);
+        showCollisionAreas(obstacles, debugGraphics);
 
         // limit camera to map
         // this.cameras.main.setBounds(0, 0, 120, 80);
