@@ -52,9 +52,9 @@ var config = {
 
         // creating the layers
         map.createLayer('Ground', tiles, 0, 0);
-        // map.createLayer('Buildings', tiles, 0, 0);
+        map.createLayer('Buildings', tiles, 0, 0);
+        map.createLayer('Barriers', tiles, 0, 0);
         var obstacles = map.createLayer('Buildings and Ground', tiles, 0, 0);
-        map.createLayer('Foreground', tiles, 0, 0);
 
         // create ground array for pathfinding
         var ground_grid = [];
@@ -96,14 +96,16 @@ var config = {
         // easystar.avoidAdditionalPoint(31, 41);
 
         //creating the sprites
-        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(16, 16); //changed from 25, 25
+        meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(16, 16).setOffset(24, 35); //changed from 25, 25
         meg.setScale(0.8, 0.8);
-        trapper = this.physics.add.sprite(64, 64, 'trapper_sprites', 'trapper_sprite_78.png').setSize(16, 16); //changed from 30, 30 to avoid getting stuck
+        trapper = this.physics.add.sprite(64, 64, 'trapper_sprites', 'trapper_sprite_78.png').setSize(16, 16).setOffset(24, 35); //changed from 30, 30 to avoid getting stuck
         trapper.setScale(0.8, 0.8);
         gen = this.physics.add.sprite(510, 360, 'gen').setSize(80, 80).setOffset(10, 250).setImmovable();
         gen.setScale(0.3, 0.3);
         target_object = this.physics.add.sprite(64, 64, 'meg_sprites', 'meg_sprite_21.png').setSize(1, 1);
         target_object.visible = false;
+
+        map.createLayer('Foreground', tiles, 0, 0);
 
         // make all tiles in obstacles collidable
         // obstacles.setCollisionByExclusion([-1]);
