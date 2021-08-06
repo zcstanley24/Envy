@@ -34,6 +34,8 @@ var config = {
     var gen;
     var target_object;
     var update_timer = 0;
+    var health_bar;
+    var attack_timer = 0; //controls rate at which health is lost
 
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
@@ -56,23 +58,22 @@ var config = {
         map.createLayer('Barriers', tiles, 0, 0);
         var obstacles = map.createLayer('Buildings and Ground', tiles, 0, 0);
 
-        // create ground array for pathfinding
-        var ground_grid = [];
+        // create grid for pathfinding
+        var pathfinder_grid = [];
         for(let y = 0; y < map.height; y++) {
             var col = [];
             for(var x = 0; x < map.width; x++) {
                 var tile = map.getTileAt(x, y, true, 'Buildings and Ground');
                 col.push(tile.index);
             }
-            ground_grid.push(col);
+            pathfinder_grid.push(col);
         }
-        easystar.setGrid(ground_grid);
+        easystar.setGrid(pathfinder_grid);
 
         var tileset = map.tilesets[0];
         var properties = tileset.tileProperties;
         var acceptableTiles = [];
-
-        for(var i = tileset.firstgid-1; i < tileset.total; i++){ // firstgid and total are fields from Tiled that indicate the range of IDs that the tiles can take in that tileset
+        for(var i = tileset.firstgid-1; i < tileset.total; i++){
             if(!properties.hasOwnProperty(i)) {
                 acceptableTiles.push(i+1);
                 continue;
@@ -107,6 +108,11 @@ var config = {
 
         map.createLayer('Foreground', tiles, 0, 0);
 
+        //create health bar
+        var health_text = this.add.text(0, 0, 'Health', { fontSize: '10px', fill: '#000' }).setScrollFactor(0);
+        health_bar = this.add.graphics().setScrollFactor(0);
+        createHealthBar(health_bar, 100, 12.5, 40, 0, 0x2ecc71);
+
         // make all tiles in obstacles collidable
         // obstacles.setCollisionByExclusion([-1]);
         obstacles.setCollisionByProperty({collides: true});
@@ -124,9 +130,9 @@ var config = {
         this.physics.add.collider(meg, gen);
         this.physics.add.collider(trapper, gen);
 
-        //use this to test collision areas of a layer
-        const debugGraphics = this.add.graphics().setAlpha(0.7);
-        showCollisionAreas(obstacles, debugGraphics);
+        //highlight collision areas of a layer
+        // const debugGraphics = this.add.graphics().setAlpha(0.7);
+        // showCollisionAreas(obstacles, debugGraphics);
 
         // limit camera to map
         // this.cameras.main.setBounds(0, 0, 120, 80);
@@ -282,6 +288,14 @@ var config = {
         });
     }
 
+    function createHealthBar(bar, size_x, size_y, position_x, position_y, color) {
+        bar.fillStyle(color, 1);
+        bar.fillRect(0, 0, size_x, size_y);
+        bar.x = position_x;
+        bar.y = position_y;
+        return bar;
+    }
+
     function update(time, delta) {
         //update_timer runs easystar path algorithm every x update triggers (roughly 60 update triggers/sec)
         //need to tweak update_timer and moveToObject speed parameters for better ai 
@@ -295,7 +309,6 @@ var config = {
                     console.log("Path was not found");
                 }
                 else {
-                    console.log(path);
                     for(let i = 1; i < 3; i++) {
                         target_object.x = path[i].x*16;
                         target_object.y = path[i].y*16;
@@ -323,6 +336,7 @@ var config = {
             });
             easystar.calculate();
         }
+
         if(Math.abs(meg.x - trapper.x) < 16 && Math.abs(meg.y - trapper.y) < 16) {
             trapper.setVelocityX(0);
             trapper.setVelocityY(0);
@@ -340,7 +354,43 @@ var config = {
                 trapper.flipX = false;
                 trapper.anims.play('trapper-attack-left', true);
             }
+
+            //adds damage quicker with lower attack_timer value
+            if(attack_timer === 50) {
+                attack_timer = 0;
+                health_bar.scaleX -= 0.1;
+                health_bar.scaleX = Math.floor(health_bar.scaleX * 100) / 100; //rounding to two decimals
+                if(health_bar.scaleX === 0.3) {
+                    health_bar.destroy();
+                    health_bar = this.add.graphics().setScrollFactor(0);
+                    createHealthBar(health_bar, 100, 12.5, 40, 0, 0xC62520);
+                    health_bar.scaleX = 0.3;
+                }
+                else if(health_bar.scaleX === 0.6) {
+                    health_bar.destroy();
+                    health_bar = this.add.graphics().setScrollFactor(0);
+                    createHealthBar(health_bar, 100, 12.5, 40, 0, 0xFEF60F);
+                    health_bar.scaleX = 0.6;
+                }
+            }
+            attack_timer++;
         }
+
+        //sets game over screen when health reaches 0
+        if(health_bar.scaleX <= 0.0) {
+            var game_over_text = this.add.text(100, 100, 'Game Over', { fontSize: '32px', fill: '#E92416'}).setScrollFactor(0);
+            var restart_text = this.add.text(80, 130, 'Press Space to continue', { fontSize: '16px', fill: '#000000'}).setScrollFactor(0);
+            meg.setTint(0xff0000);
+            this.physics.pause();
+            health_bar.destroy();
+            var continue_button = {
+                space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+            }
+            if(continue_button.space.isDown) {
+                this.scene.restart();
+            }
+        }
+
         update_timer++;
         meg.setVelocity(0);
 
