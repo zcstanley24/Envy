@@ -36,6 +36,7 @@ var config = {
     var update_timer = 0;
     var health_bar;
     var attack_timer = 0; //controls rate at which health is lost
+    var is_dead;
 
     function preload() {
         this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
@@ -167,6 +168,9 @@ var config = {
         var megStandLeftFrameNames = this.anims.generateFrameNames('meg_sprites', {
             start: 11, end: 11, prefix: 'meg_sprite_', suffix: '.png'
         });
+        var megDeathFrameNames = this.anims.generateFrameNames('meg_sprites', {
+            start: 122, end: 128, prefix: 'meg_sprite_', suffix: '.png'
+        });
         var trapperWalkUpFrameNames = this.anims.generateFrameNames('trapper_sprites', {
             start: 61, end: 68, prefix: 'trapper_sprite_', suffix: '.png'
         });
@@ -230,6 +234,12 @@ var config = {
             frames: megStandDownFrameNames,
             frameRate: 10,
             repeat: -1
+        });
+        this.anims.create({
+            key: 'meg-death',
+            frames: megDeathFrameNames,
+            frameRate: 10,
+            repeat: 0
         });
 
         this.anims.create({
@@ -357,6 +367,7 @@ var config = {
 
             //adds damage quicker with lower attack_timer value
             if(attack_timer === 50) {
+                meg.setTint(0xff0000);
                 attack_timer = 0;
                 health_bar.scaleX -= 0.1;
                 health_bar.scaleX = Math.floor(health_bar.scaleX * 100) / 100; //rounding to two decimals
@@ -375,80 +386,88 @@ var config = {
             }
             attack_timer++;
         }
+        else {
+            meg.setTint(0xffffff);
+        }
 
         //sets game over screen when health reaches 0
         if(health_bar.scaleX <= 0.0) {
             var game_over_text = this.add.text(100, 100, 'Game Over', { fontSize: '32px', fill: '#E92416'}).setScrollFactor(0);
             var restart_text = this.add.text(80, 130, 'Press Space to continue', { fontSize: '16px', fill: '#000000'}).setScrollFactor(0);
-            meg.setTint(0xff0000);
+            if(!is_dead) {
+                meg.anims.play('meg-death', true);
+                is_dead = true;
+            }
             this.physics.pause();
             health_bar.destroy();
             var continue_button = {
                 space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
             }
             if(continue_button.space.isDown) {
+                is_dead = false;
                 this.scene.restart();
             }
         }
 
         update_timer++;
         meg.setVelocity(0);
+        if(!is_dead) {
+            if(cursors.right.isDown || wasd.right.isDown) {
+                meg.setVelocityX(200);
+                meg.body.velocity.normalize().scale(200);
+            }
+            else if(cursors.left.isDown || wasd.left.isDown) {
+                meg.setVelocityX(-200);
+                meg.body.velocity.normalize().scale(200);
+            }
 
-        if(cursors.right.isDown || wasd.right.isDown) {
-            meg.setVelocityX(200);
-            meg.body.velocity.normalize().scale(200);
-        }
-        else if(cursors.left.isDown || wasd.left.isDown) {
-            meg.setVelocityX(-200);
-            meg.body.velocity.normalize().scale(200);
-        }
+            if(cursors.up.isDown || wasd.up.isDown) {
+                meg.setVelocityY(-200);
+                meg.body.velocity.normalize().scale(200);
+            }
+            else if(cursors.down.isDown || wasd.down.isDown) {
+                meg.setVelocityY(200);
+                meg.body.velocity.normalize().scale(200);
+            }
 
-        if(cursors.up.isDown || wasd.up.isDown) {
-            meg.setVelocityY(-200);
-            meg.body.velocity.normalize().scale(200);
-        }
-        else if(cursors.down.isDown || wasd.down.isDown) {
-            meg.setVelocityY(200);
-            meg.body.velocity.normalize().scale(200);
-        }
-
-        // Update the animation last and give left/right animations precedence over up/down animations
-        if (cursors.left.isDown || wasd.left.isDown)
-        {
-            meg.anims.play('meg-walk-left', true);
-            meg.flipX = false;
-            meg_last_direction = "left";
-        }
-        else if (cursors.right.isDown || wasd.right.isDown)
-        {
-            meg.anims.play('meg-walk-left', true);
-            meg.flipX = true;
-            meg_last_direction = "right";
-        }
-        else if (cursors.up.isDown || wasd.up.isDown)
-        {
-            meg.anims.play('meg-walk-up', true);
-            meg_last_direction = "up";
-        }
-        else if (cursors.down.isDown || wasd.down.isDown)
-        {
-            meg.anims.play('meg-walk-down', true);
-            meg_last_direction = "down";
-        }
-        else
-        {
-            if(meg_last_direction === "right") {
+            // Update the animation last and give left/right animations precedence over up/down animations
+            if (cursors.left.isDown || wasd.left.isDown)
+            {
+                meg.anims.play('meg-walk-left', true);
+                meg.flipX = false;
+                meg_last_direction = "left";
+            }
+            else if (cursors.right.isDown || wasd.right.isDown)
+            {
+                meg.anims.play('meg-walk-left', true);
                 meg.flipX = true;
-                meg.anims.play('meg-stand-left', true);
+                meg_last_direction = "right";
             }
-            else if(meg_last_direction === "left") {
-                meg.anims.play('meg-stand-left', true);
+            else if (cursors.up.isDown || wasd.up.isDown)
+            {
+                meg.anims.play('meg-walk-up', true);
+                meg_last_direction = "up";
             }
-            else if(meg_last_direction === "up") {
-                meg.anims.play('meg-stand-up', true);
+            else if (cursors.down.isDown || wasd.down.isDown)
+            {
+                meg.anims.play('meg-walk-down', true);
+                meg_last_direction = "down";
             }
-            else if(meg_last_direction === "down") {
-                meg.anims.play('meg-stand-down', true);
+            else
+            {
+                if(meg_last_direction === "right") {
+                    meg.flipX = true;
+                    meg.anims.play('meg-stand-left', true);
+                }
+                else if(meg_last_direction === "left") {
+                    meg.anims.play('meg-stand-left', true);
+                }
+                else if(meg_last_direction === "up") {
+                    meg.anims.play('meg-stand-up', true);
+                }
+                else if(meg_last_direction === "down") {
+                    meg.anims.play('meg-stand-down', true);
+                }
             }
         }
     }
