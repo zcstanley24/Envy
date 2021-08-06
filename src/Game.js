@@ -13,6 +13,10 @@ export default class GameScene extends Phaser.Scene {
         this.target_object;
         this.update_timer = 0;
         this.health_bar;
+        this.health_bar_width = 100;
+        this.health_bar_height = 10;
+        this.health_bar_color = 0x2ecc71;
+        this.health_text;
         this.attack_timer = 0; //controls rate at which health is lost
         this.is_dead;
         this.easystar = new easystarjs.js();
@@ -90,9 +94,9 @@ export default class GameScene extends Phaser.Scene {
         map.createLayer('Foreground', tiles, 0, 0);
 
         //create health bar
-        var health_text = this.add.text(0, 0, 'Health', { fontSize: '10px', fill: '#000' }).setScrollFactor(0);
+        this.health_text = this.add.text(1, 4, 'Health', { fontSize: '10px', fill: '#000' }).setScrollFactor(0);
         this.health_bar = this.add.graphics().setScrollFactor(0);
-        this.createHealthBar(this.health_bar, 100, 12.5, 40, 0, 0x2ecc71);
+        this.createHealthBar(this.health_bar, this.health_bar_width, this.health_bar_height, 40, 0, this.health_bar_color);
 
         // make all tiles in obstacles collidable
         // obstacles.setCollisionByExclusion([-1]);
@@ -279,8 +283,12 @@ export default class GameScene extends Phaser.Scene {
     }
 
     createHealthBar(bar, size_x, size_y, position_x, position_y, color) {
+        bar.lineStyle(4, 0x000000, 1.0);
+        bar.strokeRoundedRect(2, 5, 100, 10, 5);
+        bar.fillStyle(0xFFFFFF, 1);
+        bar.fillRoundedRect(2, 5, 100, 10, 5);
         bar.fillStyle(color, 1);
-        bar.fillRect(0, 0, size_x, size_y);
+        bar.fillRoundedRect(2, 5, size_x, size_y, 5);
         bar.x = position_x;
         bar.y = position_y;
         return bar;
@@ -347,22 +355,18 @@ export default class GameScene extends Phaser.Scene {
 
             //adds damage quicker with lower attack_timer value
             if(this.attack_timer === 50) {
-                this.meg.setTint(0xff0000);
                 this.attack_timer = 0;
-                this.health_bar.scaleX -= 0.1;
-                this.health_bar.scaleX = Math.floor(this.health_bar.scaleX * 100) / 100; //rounding to two decimals
-                if(this.health_bar.scaleX === 0.3) {
-                    this.health_bar.destroy();
-                    this.health_bar = this.add.graphics().setScrollFactor(0);
-                    this.createHealthBar(this.health_bar, 100, 12.5, 40, 0, 0xC62520);
-                    this.health_bar.scaleX = 0.3;
+                this.meg.setTint(0xff0000);
+                this.health_bar_width -= 10;
+                if(this.health_bar_width === 30) {
+                    this.health_bar_color = 0xC62520;
                 }
-                else if(this.health_bar.scaleX === 0.6) {
-                    this.health_bar.destroy();
-                    this.health_bar = this.add.graphics().setScrollFactor(0);
-                    this.createHealthBar(this.health_bar, 100, 12.5, 40, 0, 0xFEF60F);
-                    this.health_bar.scaleX = 0.6;
+                else if(this.health_bar_width === 60) {
+                    this.health_bar_color = 0xF1E738;
                 }
+                this.health_bar.destroy();
+                this.health_bar = this.add.graphics().setScrollFactor(0);
+                this.createHealthBar(this.health_bar, this.health_bar_width, this.health_bar_height, 40, 0, this.health_bar_color);
             }
             this.attack_timer++;
         }
@@ -371,7 +375,7 @@ export default class GameScene extends Phaser.Scene {
         }
 
         //sets game over screen when health reaches 0
-        if(this.health_bar.scaleX <= 0.0) {
+        if(this.health_bar_width <= 0) {
             var game_over_text = this.add.text(100, 100, 'Game Over', { fontSize: '32px', fill: '#E92416'}).setScrollFactor(0);
             var restart_text = this.add.text(80, 130, 'Press Space to continue', { fontSize: '16px', fill: '#000000'}).setScrollFactor(0);
             if(!this.is_dead) {
@@ -380,11 +384,14 @@ export default class GameScene extends Phaser.Scene {
             }
             this.physics.pause();
             this.health_bar.destroy();
+            this.health_text.destroy();
             var continue_button = {
                 space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
             }
             if(continue_button.space.isDown) {
                 this.is_dead = false;
+                this.health_bar_width = 100;
+                this.health_bar_color = 0x2ecc71;
                 this.scene.restart();
             }
         }
