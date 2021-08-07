@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 var easystarjs = require('easystarjs');
 
 export default class GameScene extends Phaser.Scene {
@@ -23,11 +24,12 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.multiatlas('meg_sprites', 'assets/meg_spritesheet.json', 'assets');
-        this.load.multiatlas('trapper_sprites', 'assets/trapper_spritesheet.json', 'assets');
-        this.load.image('tiles', 'assets/tiles/westworld.png');
-        this.load.image('gen', 'assets/objects/gen.png');
-        this.load.tilemapTiledJSON('tilemap', 'assets/tiles/west.json');
+        this.load.setPath('src/assets/');
+        this.load.multiatlas('meg_sprites', 'meg_spritesheet.json');
+        this.load.multiatlas('trapper_sprites', 'trapper_spritesheet.json');
+        this.load.image('tiles', 'tiles/westworld.png');
+        this.load.image('gen', 'objects/gen.png');
+        this.load.tilemapTiledJSON('tilemap', 'tiles/west.json');
     }
 
     create() {

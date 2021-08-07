@@ -1,4 +1,4 @@
-import 'phaser';
+import Phaser from 'phaser';
 import showCollisionAreas from './helper_functions/showCollisionAreas';
 import GameScene from './Game';
 import MenuScene from './Menu';
