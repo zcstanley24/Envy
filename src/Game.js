@@ -7,6 +7,7 @@ export default class GameScene extends Phaser.Scene {
         this.meg;
         this.trapper;
         this.cursors;
+        this.spaceKey;
         this.wasd;
         this.meg_last_direction;
         this.trapper_last_direction;
@@ -80,12 +81,9 @@ export default class GameScene extends Phaser.Scene {
         this.easystar.avoidAdditionalPoint(31, 24);
         this.easystar.avoidAdditionalPoint(31, 25);
         this.easystar.avoidAdditionalPoint(32, 24);
-        //stuck on objects
+        //avoid getting stuck on objects
         this.easystar.avoidAdditionalPoint(23, 26);
         this.easystar.avoidAdditionalPoint(26, 26);
-        // easystar.avoidAdditionalPoint(18, 24);
-        // easystar.avoidAdditionalPoint(45, 23);
-        // easystar.avoidAdditionalPoint(31, 41);
 
         //creating the sprites
         this.meg = this.physics.add.sprite(200, 200, 'meg_sprites', 'meg_sprite_21.png').setSize(16, 16).setOffset(24, 35); //changed from 25, 25
@@ -135,9 +133,10 @@ export default class GameScene extends Phaser.Scene {
         this.zone = this.add.zone(510, 380).setSize(50, 50);
         this.physics.world.enable(this.zone);
         this.zone.body.moves = false;
-        this.physics.add.overlap(this.meg, this.zone, repair());
+        this.physics.add.overlap(this.meg, this.zone, this.repair());
 
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.wasd = {
             up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
@@ -162,6 +161,15 @@ export default class GameScene extends Phaser.Scene {
         });
         var megStandLeftFrameNames = this.anims.generateFrameNames('meg_sprites', {
             start: 11, end: 11, prefix: 'meg_sprite_', suffix: '.png'
+        });
+        var megRepairUpFrameNames = this.anims.generateFrameNames('meg_sprites', {
+            start: 145, end: 152, prefix: 'meg_sprite_', suffix: '.png'
+        });
+        var megRepairDownFrameNames = this.anims.generateFrameNames('meg_sprites', {
+            start: 162, end: 169, prefix: 'meg_sprite_', suffix: '.png'
+        });
+        var megRepairLeftFrameNames = this.anims.generateFrameNames('meg_sprites', {
+            start: 154, end: 161, prefix: 'meg_sprite_', suffix: '.png'
         });
         var megDeathFrameNames = this.anims.generateFrameNames('meg_sprites', {
             start: 122, end: 128, prefix: 'meg_sprite_', suffix: '.png'
@@ -213,12 +221,6 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
         this.anims.create({
-            key: 'meg-stand-left',
-            frames: megStandLeftFrameNames,
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
             key: 'meg-stand-up',
             frames: megStandUpFrameNames,
             frameRate: 10,
@@ -231,12 +233,35 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
         this.anims.create({
+            key: 'meg-stand-left',
+            frames: megStandLeftFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'meg-repair-up',
+            frames: megRepairUpFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'meg-repair-down',
+            frames: megRepairDownFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'meg-repair-left',
+            frames: megRepairLeftFrameNames,
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
             key: 'meg-death',
             frames: megDeathFrameNames,
             frameRate: 10,
             repeat: 0
         });
-
         this.anims.create({
             key: 'trapper-walk-up',
             frames: trapperWalkUpFrameNames,
@@ -293,11 +318,10 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    repair ()
-    {
+    repair() {
         if(this.repairing && this.completed != true) {
             this.progress += .001;
-            console.log(progress);
+            console.log(this.progress);
         }
     }
 
@@ -317,7 +341,7 @@ export default class GameScene extends Phaser.Scene {
         //update_timer runs easystar path algorithm every x update triggers (roughly 60 update triggers/sec)
         //need to tweak update_timer and moveToObject speed parameters for better ai
         this.easystar.enableDiagonals();
-        // easystar.enableCornerCutting();
+        // this.easystar.enableCornerCutting();
         this.easystar.setIterationsPerCalculation(6000);
         if(this.update_timer === 50) {
             this.update_timer = 0;
@@ -404,15 +428,29 @@ export default class GameScene extends Phaser.Scene {
             this.physics.pause();
             this.health_bar.destroy();
             this.health_text.destroy();
-            var continue_button = {
-                space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
-            }
-            if(continue_button.space.isDown) {
+            // var continue_button = {
+            //     space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+            // }
+            if(this.spaceKey.isDown) {
+                //manually resetting state variables before restarting
                 this.is_dead = false;
                 this.health_bar_width = 100;
                 this.health_bar_color = 0x2ecc71;
+                this.update_timer = 0;
+                this.progress = 0;
+                this.completed = false;
                 this.scene.restart();
             }
+        }
+
+        if(this.physics.overlap(this.meg, this.zone)) {
+            if(this.spaceKey.isDown) {
+                this.repairing = true;
+            }
+            else {
+                this.repairing = false;
+            }
+            this.repair(); 
         }
 
         if(this.progress > 1 && this.completed == false) {
@@ -420,12 +458,6 @@ export default class GameScene extends Phaser.Scene {
             this.completed = true;
         }
 
-        if(this.cursors.space.isDown) {
-            this.repairing = true;
-        }
-        else {
-            this.repairing = false;
-        }
         // this.zone.body.debugBodyColor = this.zone.body.touching.meg ? 0x00ffff : 0xffff00;
 
         this.update_timer++;
@@ -474,18 +506,25 @@ export default class GameScene extends Phaser.Scene {
             }
             else
             {
+                var standing_or_repairing = '';
+                if(this.repairing) {
+                    standing_or_repairing = "repair";
+                }
+                else {
+                    standing_or_repairing = "stand";
+                }
                 if(this.meg_last_direction === "right") {
                     this.meg.flipX = true;
-                    this.meg.anims.play('meg-stand-left', true);
+                    this.meg.anims.play('meg-'+standing_or_repairing+'-left', true);
                 }
                 else if(this.meg_last_direction === "left") {
-                    this.meg.anims.play('meg-stand-left', true);
+                    this.meg.anims.play('meg-'+standing_or_repairing+'-left', true);
                 }
                 else if(this.meg_last_direction === "up") {
-                    this.meg.anims.play('meg-stand-up', true);
+                    this.meg.anims.play('meg-'+standing_or_repairing+'-up', true);
                 }
                 else if(this.meg_last_direction === "down") {
-                    this.meg.anims.play('meg-stand-down', true);
+                    this.meg.anims.play('meg-'+standing_or_repairing+'-down', true);
                 }
             }
         }
