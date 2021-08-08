@@ -23,7 +23,7 @@ export default class GameScene extends Phaser.Scene {
         this.is_dead;
         this.easystar = new easystarjs.js();
         this.zone;
-        this.repairing;
+        this.repairing = false;
         this.progress = 0;
         this.completed = false;
     }
@@ -437,6 +437,10 @@ export default class GameScene extends Phaser.Scene {
                 this.health_bar_width = 100;
                 this.health_bar_color = 0x2ecc71;
                 this.update_timer = 0;
+<<<<<<< HEAD
+=======
+                this.repairing = false;
+>>>>>>> 5cb7adb (Repair gen animation and call repair function on each update)
                 this.progress = 0;
                 this.completed = false;
                 this.scene.restart();
