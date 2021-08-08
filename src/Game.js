@@ -21,6 +21,10 @@ export default class GameScene extends Phaser.Scene {
         this.attack_timer = 0; //controls rate at which health is lost
         this.is_dead;
         this.easystar = new easystarjs.js();
+        this.zone;
+        this.repairing;
+        this.progress = 0;
+        this.completed = false;
     }
 
     preload() {
@@ -127,6 +131,11 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setSize(360, 240);
         this.cameras.main.setPosition(60, 60);
         // this.cameras.main.roundPixels = true; // avoid tile bleed
+
+        this.zone = this.add.zone(510, 380).setSize(50, 50);
+        this.physics.world.enable(this.zone);
+        this.zone.body.moves = false;
+        this.physics.add.overlap(this.meg, this.zone, repair());
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasd = {
@@ -284,6 +293,14 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
+    repair ()
+    {
+        if(this.repairing && this.completed != true) {
+            this.progress += .001;
+            console.log(progress);
+        }
+    }
+
     createHealthBar(bar, size_x, size_y, position_x, position_y, color) {
         bar.lineStyle(4, 0x000000, 1.0);
         bar.strokeRoundedRect(2, 5, 100, 10, 5);
@@ -298,7 +315,7 @@ export default class GameScene extends Phaser.Scene {
 
     update(time, delta) {
         //update_timer runs easystar path algorithm every x update triggers (roughly 60 update triggers/sec)
-        //need to tweak update_timer and moveToObject speed parameters for better ai 
+        //need to tweak update_timer and moveToObject speed parameters for better ai
         this.easystar.enableDiagonals();
         // easystar.enableCornerCutting();
         this.easystar.setIterationsPerCalculation(6000);
@@ -397,6 +414,19 @@ export default class GameScene extends Phaser.Scene {
                 this.scene.restart();
             }
         }
+
+        if(this.progress > 1 && this.completed == false) {
+            console.log("done repairing")
+            this.completed = true;
+        }
+
+        if(this.cursors.space.isDown) {
+            this.repairing = true;
+        }
+        else {
+            this.repairing = false;
+        }
+        // this.zone.body.debugBodyColor = this.zone.body.touching.meg ? 0x00ffff : 0xffff00;
 
         this.update_timer++;
         this.meg.setVelocity(0);
