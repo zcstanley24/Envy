@@ -130,7 +130,7 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setPosition(60, 60);
         // this.cameras.main.roundPixels = true; // avoid tile bleed
 
-        this.zone = this.add.zone(510, 380).setSize(50, 50);
+        this.zone = this.add.zone(510, 390).setSize(50, 50);
         this.physics.world.enable(this.zone);
         this.zone.body.moves = false;
         this.physics.add.overlap(this.meg, this.zone, this.repair());
@@ -437,10 +437,7 @@ export default class GameScene extends Phaser.Scene {
                 this.health_bar_width = 100;
                 this.health_bar_color = 0x2ecc71;
                 this.update_timer = 0;
-<<<<<<< HEAD
-=======
                 this.repairing = false;
->>>>>>> 5cb7adb (Repair gen animation and call repair function on each update)
                 this.progress = 0;
                 this.completed = false;
                 this.scene.restart();
